@@ -1,0 +1,355 @@
+/* ================= GLOBAL ================= */
+body{
+    background:#f6f9ff;
+    font-family:"Nunito", sans-serif;
+    color:#444;
+}
+
+/* ================= TOPBAR ================= */
+.topbar{
+    background:#fff;
+    padding:12px 20px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+.search-box{
+    border:1px solid #e0e6ed;
+    border-radius:20px;
+    padding:6px 12px;
+}
+
+/* ================= SIDEBAR ================= */
+.sidebar{
+    height:100vh;
+    background:#fff;
+    border-right:1px solid #e0e6ed;
+    padding-top:20px;
+}
+
+.sidebar h4{
+    color:#012970;
+    font-weight:700;
+}
+
+.sidebar a{
+    display:block;
+    padding:10px 15px;
+    margin:5px 10px;
+    color:#012970;
+    font-weight:600;
+    border-radius:6px;
+    text-decoration:none;
+}
+
+.sidebar a:hover{
+    background:#f6f9ff;
+    color:#4154f1;
+}
+
+.sidebar a.active{
+    background:#f6f9ff;
+    color:#4154f1;
+}
+
+/* ================= CONTENT ================= */
+.content{
+    padding:25px;
+}
+
+/* ================= INFO CARDS ================= */
+.info-card{
+    border:none;
+    border-radius:8px;
+    padding:20px;
+    background:#fff;
+    box-shadow:0px 0 20px rgba(1,41,112,0.1);
+}
+
+.info-card h6{
+    color:#899bbd;
+}
+
+.info-card h4{
+    font-weight:700;
+    color:#012970;
+}
+
+/* ================= STAT CARDS ================= */
+.stat-card{
+    border:none;
+    border-radius:8px;
+    padding:20px;
+    background:#fff;
+    text-align:center;
+    box-shadow:0px 0 20px rgba(1,41,112,0.1);
+}
+
+.stat-card h6{
+    color:#899bbd;
+}
+
+.stat-card h2{
+    font-weight:700;
+    color:#012970;
+}
+
+/* ================= MAIN CARD ================= */
+.main-card{
+    border:none;
+    border-radius:8px;
+    background:#fff;
+    box-shadow:0px 0 20px rgba(1,41,112,0.1);
+}
+
+/* ================= NOTICE CARD ================= */
+.notice-card{
+    border:none;
+    border-radius:8px;
+    background:#fff;
+    box-shadow:0px 0 20px rgba(1,41,112,0.1);
+    padding:15px;
+}
+
+/* ================= TIMELINE STYLE ================= */
+.update-item{
+    position:relative;
+    padding-left:25px;
+    margin-bottom:15px;
+}
+
+.update-item::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:6px;
+    width:8px;
+    height:8px;
+    background:#4154f1;
+    border-radius:50%;
+}
+
+/* ================= IMAGE ================= */
+.main-card img{
+    display:block;
+    margin:auto;
+    max-width:100%;
+}
+
+/* ================= HOVER ================= */
+.card:hover{
+    transform:translateY(-3px);
+    transition:0.3s;
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:768px){
+
+.sidebar{
+    height:auto;
+}
+
+.content{
+    padding:15px;
+}
+
+}
+
+/* ================= SOFT LIGHT GRADIENT ================= */
+
+/* info cards */
+.info-card.blue{
+    background: linear-gradient(135deg,#c7f0ff,#a5e3f5) !important;
+    color:#0c4a6e;
+}
+
+.info-card.green{
+    background: linear-gradient(135deg,#d9fdd3,#b7f3c2) !important;
+    color:#065f46;
+}
+
+/* stat cards (light pastel) */
+.stat-card{
+    color:#1e293b !important;
+}
+
+/* light blue */
+.stat-card.primary{
+    background: linear-gradient(135deg,#e0f2fe,#bae6fd);
+}
+
+/* light green */
+.stat-card.success{
+    background: linear-gradient(135deg,#dcfce7,#bbf7d0);
+}
+
+/* light red (soft pink) */
+.stat-card.danger{
+    background: linear-gradient(135deg,#fee2e2,#fecaca);
+}
+
+/* sidebar active */
+.sidebar a.active{
+    background:#e0e7ff !important;
+    color:#4338ca !important;
+}
+
+/* hover */
+.info-card:hover,
+.stat-card:hover{
+    transform:translateY(-4px);
+    transition:0.3s;
+}
+
+/* timeline */
+.update-item::before{
+    background:#94a3b8 !important;
+}
+
+/* ================= LATEST UPDATES FIXED ================= */
+
+.notice-card{
+    border:none;
+    border-radius:18px;
+    background:white;
+    box-shadow:0 10px 25px rgba(0,0,0,0.06);
+    padding:20px;
+}
+
+/* each item */
+.update-item{
+    position:relative;
+    padding-left:35px;
+    margin-bottom:22px;
+}
+
+/* vertical line */
+.update-item::before{
+    content:"";
+    position:absolute;
+    left:6px;
+    top:8px;
+    bottom:-10px;
+    width:2px;
+    background:#e2e8f0;
+}
+
+/* remove line from last item */
+.update-item:last-child::before{
+    display:none;
+}
+
+/* dot */
+.update-dot{
+    position:absolute;
+    left:0;
+    top:6px;
+    width:12px;
+    height:12px;
+    background:#3b82f6;
+    border-radius:50%;
+}
+
+/* content spacing */
+.update-content{
+    padding-left:5px;
+}
+
+/* title */
+.update-title{
+    font-size:14px;
+    font-weight:600;
+    color:#0f172a;
+}
+
+/* description */
+.update-desc{
+    font-size:13px;
+    color:#64748b;
+    margin:4px 0 6px;
+}
+
+/* button (better look) */
+.view-btn{
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:6px;
+    border:1px solid #3b82f6;
+    color:#3b82f6;
+    background:white;
+}
+
+.view-btn:hover{
+    background:#3b82f6;
+    color:white;
+}
+
+/* hover effect (clean) */
+.update-item:hover{
+    background:#f8fafc;
+    border-radius:10px;
+    padding:10px 10px 10px 35px;
+    transition:0.2s;
+}
+
+/* ================= SIDEBAR NEW ================= */
+
+.sidebar{
+    height:100vh;
+    background:#ffffff;
+    border-right:1px solid #e5e7eb;
+    padding:20px 10px;
+}
+
+/* title */
+.sidebar-title{
+    color:#2563eb;
+    font-weight:700;
+}
+
+/* headings */
+.menu-heading{
+    font-size:12px;
+    color:#94a3b8;
+    margin:15px 10px 5px;
+    text-transform:uppercase;
+}
+
+/* links */
+.menu-link{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px;
+    margin:5px 8px;
+    border-radius:8px;
+    color:#334155;
+    text-decoration:none;
+    font-weight:500;
+    transition:0.2s;
+}
+
+/* icons */
+.menu-link span{
+    font-size:16px;
+}
+
+/* hover */
+.menu-link:hover{
+    background:#f1f5f9;
+    color:#2563eb;
+}
+
+/* active */
+.menu-link.active{
+    background:#e0e7ff;
+    color:#4338ca;
+}
+
+/* danger links */
+.menu-link.danger{
+    color:#ef4444;
+}
+
+.menu-link.danger:hover{
+    background:#fee2e2;
+}
