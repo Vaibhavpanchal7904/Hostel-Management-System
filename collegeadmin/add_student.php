@@ -1,147 +1,165 @@
 <?php
+session_start();
 include("../config/config.php");
 
-// Role check
 if(!isset($_SESSION['role']) || $_SESSION['role'] != "collegeadmin") {
     header("Location: ../login.php");
     exit;
 }
 
 $college_id = $_SESSION['college_id'];
+
+$edit_id = "";
 $edit_mode = false;
-$student_id = null;
 
-/* =============================
-   EDIT MODE
-============================= */
-if(isset($_GET['edit'])) {
+/* ---------------- FETCH HOSTELS ---------------- */
+$hostel_query = mysqli_query($conn,"
+SELECT 
+    sa.*, 
+    h.name,
 
-    $student_id = intval($_GET['edit']);
+    (
+        SELECT COUNT(*) 
+        FROM students s 
+        WHERE s.hostel_id=sa.hostel_id 
+        AND s.college_id=sa.college_id
+    ) as used_seats,
+
+    (
+        SELECT COUNT(*) 
+        FROM students s 
+        WHERE s.hostel_id=sa.hostel_id 
+        AND s.college_id=sa.college_id
+        AND s.room_type='AC'
+    ) as used_ac,
+
+    (
+        SELECT COUNT(*) 
+        FROM students s 
+        WHERE s.hostel_id=sa.hostel_id 
+        AND s.college_id=sa.college_id
+        AND s.room_type='NON-AC'
+    ) as used_nonac
+
+FROM seat_allocation sa
+JOIN hostels h ON sa.hostel_id=h.id
+WHERE sa.college_id=$college_id
+");
+
+$hostel_data = [];
+
+while($h=mysqli_fetch_assoc($hostel_query)){
+    $hostel_data[$h['hostel_id']] = [
+        "name"=>$h['name'],
+        "total"=>$h['allocated_seats'],
+        "used"=>$h['used_seats'],
+        "ac_total"=>$h['ac_seats'],
+        "nonac_total"=>$h['non_ac_seats'],
+        "ac_remaining"=>$h['ac_seats']-$h['used_ac'],
+        "nonac_remaining"=>$h['non_ac_seats']-$h['used_nonac'],
+        "ac_fee"=>$h['ac_fees'],
+        "nonac_fee"=>$h['non_ac_fees']
+    ];
+}
+
+/* DEFAULT VALUES */
+$name = "";
+$hostel_id = "";
+$room_type = "";
+$paid_amount = "";
+
+
+/* ---------------- EDIT MODE ---------------- */
+if(isset($_GET['edit'])){
+
+    $edit_id = intval($_GET['edit']);
     $edit_mode = true;
 
-    $edit_query = mysqli_query($conn, "
-        SELECT * FROM students 
-        WHERE id=$student_id AND college_id=$college_id
+    $studentQuery = mysqli_query($conn,"
+        SELECT *
+        FROM students
+        WHERE id='$edit_id'
+        AND college_id='$college_id'
     ");
 
-    if(mysqli_num_rows($edit_query) > 0){
-        $edit_data = mysqli_fetch_assoc($edit_query);
-    } else {
-        header("Location: view_students.php");
-        exit;
+    if(mysqli_num_rows($studentQuery) > 0){
+
+        $student = mysqli_fetch_assoc($studentQuery);
+
+        $name = $student['name'];
+        $hostel_id = $student['hostel_id'];
+        $room_type = $student['room_type'];
+        $paid_amount = $student['paid_amount'];
     }
 }
 
-/* =============================
-   FETCH HOSTELS
-============================= */
-$hostel_query = mysqli_query($conn, "
-    SELECT sa.*, h.name 
-    FROM seat_allocation sa
-    JOIN hostels h ON sa.hostel_id = h.id
-    WHERE sa.college_id = $college_id
-");
 
-/* =============================
-   ADD OR UPDATE STUDENT
-============================= */
-if(isset($_POST['submit'])) {
+/* ---------------- SAVE / UPDATE ---------------- */
+if(isset($_POST['submit'])){
 
     $name = $_POST['name'];
     $hostel_id = $_POST['hostel_id'];
     $room_type = $_POST['room_type'];
-    $payment_type = $_POST['payment_type'];
-    $custom_amount = $_POST['custom_amount'];
+    $paid_amount = $_POST['paid_amount'];
 
-    // Allocation check
-    $alloc_query = mysqli_query($conn, "
-        SELECT * FROM seat_allocation 
+    $alloc = mysqli_fetch_assoc(mysqli_query($conn,"
+        SELECT * 
+        FROM seat_allocation
         WHERE college_id=$college_id 
         AND hostel_id=$hostel_id
-    ");
-    $alloc_data = mysqli_fetch_assoc($alloc_query);
+    "));
 
-    if(!$alloc_data){
-        $error = "Invalid hostel selection!";
-    } else {
+    $total_fees = ($room_type=="AC")
+        ? $alloc['ac_fees']
+        : $alloc['non_ac_fees'];
 
-        $allocated = $alloc_data['allocated_seats'];
-        $ac_fees = $alloc_data['ac_fees'];
-        $non_ac_fees = $alloc_data['non_ac_fees'];
+    if($paid_amount > $total_fees){
+        $error = "Paid amount cannot exceed total fees!";
+    }
 
-        // Seat validation only when adding new student
-        if(!$edit_mode){
-            $count_query = mysqli_query($conn, "
-                SELECT COUNT(*) as total 
-                FROM students 
-                WHERE college_id=$college_id 
-                AND hostel_id=$hostel_id
+    if(!isset($error)){
+
+        if($edit_mode){
+
+            // UPDATE STUDENT
+            mysqli_query($conn,"
+                UPDATE students SET
+                    name='$name',
+                    hostel_id='$hostel_id',
+                    room_type='$room_type',
+                    total_fees='$total_fees',
+                    paid_amount='$paid_amount'
+                WHERE id='$edit_id'
+                AND college_id='$college_id'
             ");
-            $admitted = mysqli_fetch_assoc($count_query)['total'];
 
-            if($admitted >= $allocated){
-                $error = "Seat limit reached!";
-            }
-        }
+            $success = "Student Updated Successfully!";
 
-        if(!isset($error)){
+        } else {
 
-            // Fee calculation
-            $total_fees = ($room_type == "AC") ? $ac_fees : $non_ac_fees;
+            // INSERT STUDENT
+            mysqli_query($conn,"
+                INSERT INTO students(
+                    name,
+                    college_id,
+                    hostel_id,
+                    room_type,
+                    total_fees,
+                    paid_amount,
+                    status
+                )
+                VALUES(
+                    '$name',
+                    '$college_id',
+                    '$hostel_id',
+                    '$room_type',
+                    '$total_fees',
+                    '$paid_amount',
+                    'reserved'
+                )
+            ");
 
-            if($payment_type == "full"){
-                $paid_amount = $total_fees;
-            }
-            elseif($payment_type == "half"){
-                $paid_amount = $total_fees / 2;
-            }
-            else{
-                $paid_amount = $custom_amount;
-            }
-
-            if($edit_mode){
-
-                $stmt = mysqli_prepare($conn, "
-                    UPDATE students 
-                    SET name=?, hostel_id=?, room_type=?, total_fees=?, paid_amount=? 
-                    WHERE id=? AND college_id=?
-                ");
-
-                mysqli_stmt_bind_param($stmt, "sisddii",
-                    $name,
-                    $hostel_id,
-                    $room_type,
-                    $total_fees,
-                    $paid_amount,
-                    $student_id,
-                    $college_id
-                );
-
-                mysqli_stmt_execute($stmt);
-
-                $success = "Student updated successfully!";
-
-            } else {
-
-                $stmt = mysqli_prepare($conn, "
-                    INSERT INTO students 
-                    (name, college_id, hostel_id, room_type, total_fees, paid_amount, status)
-                    VALUES (?, ?, ?, ?, ?, ?, 'reserved')
-                ");
-
-                mysqli_stmt_bind_param($stmt, "siisdd",
-                    $name,
-                    $college_id,
-                    $hostel_id,
-                    $room_type,
-                    $total_fees,
-                    $paid_amount
-                );
-
-                mysqli_stmt_execute($stmt);
-
-                $success = "Student added successfully!";
-            }
+            $success = "Student Added Successfully!";
         }
     }
 }
@@ -150,149 +168,97 @@ if(isset($_POST['submit'])) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?php echo $edit_mode ? "Edit Student" : "Add Student"; ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../css/collegeadmin.css">
+<title><?php echo $edit_mode ? "Edit Student" : "Add Student"; ?></title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="collegeadmin.css">
 </head>
 <body>
-
-<!-- ================= TOPBAR ================= -->
-
-<div class="topbar d-flex justify-content-between align-items-center">
-
-<div class="d-flex align-items-center gap-3">
-<h5 class="mb-0"><?php echo $edit_mode ? "Edit Student" : "Add Student"; ?></h5>
-<input type="text" class="form-control search-box" placeholder="Search...">
-</div>
-
-<div>
-👤 <?php echo $_SESSION['name']; ?>
-</div>
-
-</div>
-
 
 <div class="container-fluid">
 <div class="row">
 
-<!-- ================= SIDEBAR ================= -->
-
-<div class="col-md-2 sidebar">
-
-<h5 class="sidebar-title text-center mb-3">College Admin</h5>
-
-<div class="menu-heading">MAIN</div>
-
-<a href="dashboard.php" class="menu-link">
-<span>🏠</span> Dashboard
-</a>
-
-<a href="add_student.php" class="menu-link active">
-<span>➕</span> Add Student
-</a>
-
-<a href="view_students.php" class="menu-link">
-<span>👨‍🎓</span> View Students
-</a>
-
-<div class="menu-heading">ACCOUNT</div>
-
-<a href="../logout.php" class="menu-link danger">
-<span>🚪</span> Logout
-</a>
-
-</div>
-
-
-<!-- ================= MAIN ================= -->
+<?php include("sidebar.php"); ?>
 
 <div class="col-md-10 p-4">
 
-<!-- ===== HEADER CARD ===== -->
+<h4><?php echo $edit_mode ? "Edit Student" : "Add Student"; ?></h4>
 
-<div class="card info-card blue mb-4">
-<h5 class="mb-1"><?php echo $edit_mode ? "Update Student Details" : "Add New Student"; ?></h5>
-<p class="mb-0">Fill the form carefully</p>
-</div>
-
-
-<!-- ===== ALERTS ===== -->
-
-<?php if(isset($error)) { ?>
+<?php if(isset($error)){ ?>
 <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php } ?>
 
-<?php if(isset($success)) { ?>
+<?php if(isset($success)){ ?>
 <div class="alert alert-success"><?php echo $success; ?></div>
 <?php } ?>
 
-
-<!-- ===== FORM CARD ===== -->
-
-<div class="card p-4 main-card">
+<div class="card p-4">
 
 <form method="POST">
 <div class="row g-3">
 
-<!-- NAME -->
 <div class="col-md-4">
-<label class="form-label">Student Name</label>
-<input type="text" name="name" class="form-control"
-value="<?php echo $edit_mode ? $edit_data['name'] : ''; ?>" required>
+<label>Name</label>
+<input type="text"
+       name="name"
+       class="form-control"
+       value="<?php echo $name; ?>"
+       required>
 </div>
 
-<!-- HOSTEL -->
 <div class="col-md-4">
-<label class="form-label">Select Hostel</label>
-<select name="hostel_id" class="form-control" required>
-<option value="">Choose...</option>
+<label>Hostel</label>
+<select name="hostel_id"
+        class="form-control"
+        id="hostelSelect"
+        required>
 
-<?php 
-mysqli_data_seek($hostel_query, 0);
-while($h = mysqli_fetch_assoc($hostel_query)) { ?>
-<option value="<?php echo $h['hostel_id']; ?>"
-<?php if($edit_mode && $edit_data['hostel_id']==$h['hostel_id']) echo "selected"; ?>>
-<?php echo $h['name']; ?>
+<option value="">Select Hostel</option>
+
+<?php foreach($hostel_data as $id=>$h){ ?>
+<option value="<?= $id ?>"
+    <?php if($hostel_id==$id) echo "selected"; ?>>
+    <?= $h['name'] ?>
 </option>
 <?php } ?>
 
 </select>
 </div>
 
-<!-- ROOM TYPE -->
-<div class="col-md-2">
-<label class="form-label">Room Type</label>
-<select name="room_type" class="form-control" required>
-<option value="AC"
-<?php if($edit_mode && $edit_data['room_type']=="AC") echo "selected"; ?>>
-AC</option>
-
-<option value="NON-AC"
-<?php if($edit_mode && $edit_data['room_type']=="NON-AC") echo "selected"; ?>>
-Non-AC</option>
+<div class="col-md-4">
+<label>Room Type</label>
+<select name="room_type"
+        class="form-control"
+        id="roomType">
 </select>
 </div>
 
-<!-- PAYMENT TYPE -->
-<div class="col-md-2">
-<label class="form-label">Payment</label>
-<select name="payment_type" class="form-control" required>
-<option value="full">Full</option>
-<option value="half">Half</option>
-<option value="custom">Custom</option>
+<div class="col-md-4">
+<label>Payment Type</label>
+<select class="form-control" id="paymentType">
+    <option value="full">Full Payment</option>
+    <option value="half">Half Payment</option>
+    <option value="custom">Custom Payment</option>
 </select>
 </div>
 
-<!-- CUSTOM AMOUNT -->
+<div class="col-md-4">
+<label>Paid Amount</label>
+<input type="number"
+       name="paid_amount"
+       id="paidAmount"
+       class="form-control"
+       value="<?php echo $paid_amount; ?>"
+       required>
+</div>
+
+<div class="col-md-12">
+    <div id="seatInfo" class="alert alert-info d-none"></div>
+</div>
+
 <div class="col-md-3">
-<label class="form-label">Custom Amount</label>
-<input type="number" name="custom_amount" class="form-control" value="0">
-</div>
-
-<!-- BUTTON -->
-<div class="col-md-3 d-flex align-items-end">
-<button type="submit" name="submit" class="btn btn-primary w-100">
-<?php echo $edit_mode ? "Update Student" : "Add Student"; ?>
+<button class="btn btn-primary w-100" name="submit">
+    <?php echo $edit_mode ? "Update Student" : "Add Student"; ?>
 </button>
 </div>
 
@@ -300,10 +266,101 @@ Non-AC</option>
 </form>
 
 </div>
+</div>
+</div>
+</div>
 
-</div>
-</div>
-</div>
+<script>
+const hostelData = <?php echo json_encode($hostel_data); ?>;
+const selectedRoomType = "<?= $room_type ?>";
+
+const hostelSelect = document.getElementById("hostelSelect");
+const roomType = document.getElementById("roomType");
+const paymentType = document.getElementById("paymentType");
+const paidAmount = document.getElementById("paidAmount");
+const seatInfo = document.getElementById("seatInfo");
+
+function updateRoomTypes(){
+
+    let h = hostelData[hostelSelect.value];
+    roomType.innerHTML = "";
+
+    if(!h) return;
+
+    if(h.ac_remaining > 0 || selectedRoomType==="AC"){
+        roomType.innerHTML += `
+            <option value="AC" ${selectedRoomType==="AC" ? "selected" : ""}>
+                AC (${h.ac_remaining} left)
+            </option>
+        `;
+    }
+
+    if(h.nonac_remaining > 0 || selectedRoomType==="NON-AC"){
+        roomType.innerHTML += `
+            <option value="NON-AC" ${selectedRoomType==="NON-AC" ? "selected" : ""}>
+                NON-AC (${h.nonac_remaining} left)
+            </option>
+        `;
+    }
+
+    updateFees();
+}
+
+function updateFees(){
+
+    let h = hostelData[hostelSelect.value];
+    if(!h) return;
+
+    let fee = roomType.value === "AC"
+        ? parseFloat(h.ac_fee)
+        : parseFloat(h.nonac_fee);
+
+    if(paymentType.value === "full"){
+        paidAmount.value = fee;
+        paidAmount.readOnly = true;
+    }
+    else if(paymentType.value === "half"){
+        paidAmount.value = fee/2;
+        paidAmount.readOnly = true;
+    }
+    else{
+        paidAmount.readOnly = false;
+    }
+}
+
+function updateSeatInfo(){
+
+    let h = hostelData[hostelSelect.value];
+
+    if(!h){
+        seatInfo.classList.add("d-none");
+        return;
+    }
+
+    let remaining = h.total - h.used;
+
+    seatInfo.classList.remove("d-none");
+
+    seatInfo.innerHTML = `
+        Total: ${h.total} |
+        Used: ${h.used} |
+        Remaining: <b>${remaining}</b><br>
+        AC Left: <b>${h.ac_remaining}</b> |
+        NON-AC Left: <b>${h.nonac_remaining}</b>
+    `;
+
+    updateRoomTypes();
+}
+
+hostelSelect.addEventListener("change", updateSeatInfo);
+roomType.addEventListener("change", updateFees);
+paymentType.addEventListener("change", updateFees);
+
+// Auto load existing values in edit mode
+if(hostelSelect.value){
+    updateSeatInfo();
+}
+</script>
 
 </body>
 </html>

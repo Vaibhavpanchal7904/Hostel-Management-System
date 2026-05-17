@@ -15,7 +15,8 @@ if(isset($_POST['add_user'])){
 
     $name = trim($_POST['name']);
     $email = trim($_POST['email']);
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    //$password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    $password = $_POST['password'];
     $role = $_POST['role'];
 
     $college_id = !empty($_POST['college_id']) ? $_POST['college_id'] : NULL;

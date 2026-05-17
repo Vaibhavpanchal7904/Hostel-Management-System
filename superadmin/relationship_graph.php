@@ -6,34 +6,104 @@ if(!isset($_SESSION['role']) || $_SESSION['role'] != "superadmin"){
     exit;
 }
 
-/* FETCH RELATION */
-$data = mysqli_query($conn,"
-SELECT 
-c.name as college,
-h.name as hostel
-FROM seat_allocation sa
-JOIN colleges c ON sa.college_id=c.id
-JOIN hostels h ON sa.hostel_id=h.id
+/* Stats */
+$total_colleges = mysqli_num_rows(mysqli_query($conn,"SELECT * FROM colleges"));
+$total_hostels = mysqli_num_rows(mysqli_query($conn,"SELECT * FROM hostels"));
+$total_links = mysqli_num_rows(mysqli_query($conn,"SELECT * FROM seat_allocation"));
+
+/* Colleges */
+$college_data = mysqli_query($conn,"
+SELECT DISTINCT c.id,c.name
+FROM colleges c
+JOIN seat_allocation sa ON c.id=sa.college_id
 ");
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-
-<title>College-Hostel Graph</title>
+<title>College Hostel Graph</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="superadmin.css">
 
-<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
-
 <style>
-#network{
-height:600px;
-border-radius:12px;
-background:#f1f5f9;
-box-shadow:0 8px 20px rgba(0,0,0,0.08);
+body{
+    background:#f8fafc;
+}
+
+/* Header */
+.graph-header{
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    color:white;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:20px;
+}
+
+/* Stats */
+.stat-card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+    box-shadow:0 6px 16px rgba(0,0,0,0.08);
+}
+
+.stat-card h4{
+    color:#2a5298;
+    font-weight:700;
+}
+
+/* Graph */
+.graph-container{
+    background:white;
+    border-radius:15px;
+    min-height:450px;
+    padding:40px;
+    box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+.college-node{
+    width:220px;
+    height:80px;
+    background:#2563eb;
+    color:white;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:600;
+    margin:auto;
+    font-size:18px;
+}
+
+.line{
+    width:4px;
+    height:60px;
+    background:#94a3b8;
+    margin:auto;
+}
+
+.hostel-node{
+    background:#10b981;
+    color:white;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+    font-weight:600;
+    min-height:80px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon{
+    background-color:#1e3c72;
+    border-radius:50%;
+    padding:20px;
 }
 </style>
 
@@ -48,113 +118,120 @@ box-shadow:0 8px 20px rgba(0,0,0,0.08);
 
 <div class="col-md-10 content">
 
-<h3>🔗 College ↔ Hostel Relationship</h3>
-<hr>
-
-<div id="network"></div>
-
-</div>
-</div>
+<!-- Header -->
+<div class="graph-header">
+    <h3>📊 College → Hostel Graph View</h3>
+    <small>One college graph per slide</small>
 </div>
 
-<script>
+<!-- Stats -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h4><?php echo $total_colleges; ?></h4>
+            <p>Total Colleges</p>
+        </div>
+    </div>
 
-/* ================= DATA ================= */
-let nodes = [];
-let edges = [];
-let nodeMap = {};
-let id = 1;
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h4><?php echo $total_hostels; ?></h4>
+            <p>Total Hostels</p>
+        </div>
+    </div>
 
-let relations = <?php
-$data_arr = [];
-mysqli_data_seek($data,0);
-while($row = mysqli_fetch_assoc($data)){
-    $data_arr[] = $row;
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h4><?php echo $total_links; ?></h4>
+            <p>Total Connections</p>
+        </div>
+    </div>
+</div>
+
+
+<!-- Graph Slider -->
+<div class="card border-0 shadow-sm p-4">
+
+<div id="collegeCarousel" class="carousel slide" data-bs-ride="false">
+
+<div class="carousel-inner">
+
+<?php
+$first=true;
+
+while($college=mysqli_fetch_assoc($college_data)){
+
+    $college_id=$college['id'];
+
+    $hostels=mysqli_query($conn,"
+    SELECT h.name
+    FROM seat_allocation sa
+    JOIN hostels h ON sa.hostel_id=h.id
+    WHERE sa.college_id='$college_id'
+    ");
+?>
+
+<div class="carousel-item <?php if($first) echo 'active'; ?>">
+
+    <div class="graph-container text-center">
+
+        <!-- College Node -->
+        <div class="college-node">
+            🎓 <?php echo $college['name']; ?>
+        </div>
+
+        <div class="line"></div>
+
+        <!-- Hostel Nodes -->
+        <div class="row justify-content-center">
+
+            <?php while($hostel=mysqli_fetch_assoc($hostels)){ ?>
+            
+            <div class="col-md-3 mb-3">
+                <div class="hostel-node">
+                    🏨 <?php echo $hostel['name']; ?>
+                </div>
+            </div>
+
+            <?php } ?>
+
+        </div>
+
+    </div>
+
+</div>
+
+<?php
+$first=false;
 }
-echo json_encode($data_arr);
-?>;
+?>
 
-/* ================= BUILD GRAPH ================= */
-relations.forEach(row => {
+</div>
 
-    let college = row.college;
-    let hostel = row.hostel;
+<!-- Buttons -->
+<button class="carousel-control-prev"
+type="button"
+data-bs-target="#collegeCarousel"
+data-bs-slide="prev">
+<span class="carousel-control-prev-icon"></span>
+</button>
 
-    // COLLEGE NODE (LEFT)
-    if(!nodeMap[college]){
-        nodeMap[college] = id;
-        nodes.push({
-            id:id,
-            label:college,
-            color:"#3b82f6",
-            shape:"box",
-            level:1,
-            font:{color:"#fff"},
-            margin:10
-        });
-        id++;
-    }
+<button class="carousel-control-next"
+type="button"
+data-bs-target="#collegeCarousel"
+data-bs-slide="next">
+<span class="carousel-control-next-icon"></span>
+</button>
 
-    // HOSTEL NODE (RIGHT)
-    if(!nodeMap[hostel]){
-        nodeMap[hostel] = id;
-        nodes.push({
-            id:id,
-            label:hostel,
-            color:"#10b981",
-            shape:"ellipse",
-            level:2,
-            font:{color:"#fff"},
-            margin:10
-        });
-        id++;
-    }
+</div>
 
-    // EDGE
-    edges.push({
-        from: nodeMap[college],
-        to: nodeMap[hostel],
-        arrows:"to"
-    });
+</div>
 
-});
+</div>
+</div>
+</div>
 
-/* ================= GRAPH ================= */
-let container = document.getElementById("network");
-
-let data = {
-    nodes: new vis.DataSet(nodes),
-    edges: new vis.DataSet(edges)
-};
-
-let options = {
-
-    layout: {
-        hierarchical: {
-            direction: "LR",   // Left → Right
-            sortMethod: "directed",
-            levelSeparation: 150,
-            nodeSpacing: 120
-        }
-    },
-
-    nodes:{
-        borderWidth:1,
-        size:20
-    },
-
-    edges:{
-        width:2,
-        color:"#94a3b8",
-        smooth:true
-    },
-
-    physics:false   // IMPORTANT (no random movement)
-};
-
-new vis.Network(container,data,options);
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

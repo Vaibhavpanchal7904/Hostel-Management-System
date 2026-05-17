@@ -30,9 +30,10 @@ $notice = mysqli_query($conn,"SELECT * FROM notices ORDER BY id DESC LIMIT 5");
 
 <div class="topbar d-flex justify-content-between align-items-center">
 
-<div class="d-flex align-items-center gap-3">
-<h5 class="mb-0">Admin Dashboard</h5>
-<input type="text" class="form-control search-box" placeholder="Search...">
+<div class="d-flex align-items-center gap-3" style="background:#f8f9fa; padding:10px 15px; border-radius:8px;">
+    <h5 class="mb-0" style="color:#2a5298; font-weight:600;">
+        Admin Dashboard
+    </h5>
 </div>
 
 <div>
@@ -118,12 +119,84 @@ $notice = mysqli_query($conn,"SELECT * FROM notices ORDER BY id DESC LIMIT 5");
 <!-- LEFT (LOGO / IMAGE) -->
 <div class="col-md-8">
 
-<div class="card p-5 text-center main-card">
+<div class="card p-4 text-center main-card">
 
-<img src="../images/images.png" width="220">
+<div id="demoCarousel" class="carousel slide" data-bs-ride="false">
+
+    <div class="carousel-inner">
+
+        <!-- Slide 1 -->
+        <div class="carousel-item active">
+            <img src="../images/images.png" width="220" class="mb-4">
+
+            <h4 class="text-primary fw-bold">
+                Hostel Management System
+            </h4>
+
+            <p class="text-muted">
+                Welcome to Hostel Management System.  
+                Manage hostels, students, fees, rooms and reports efficiently.
+            </p>
+        </div>
+
+
+        <!-- Slide 2 -->
+        <div class="carousel-item">
+            <h4 class="mb-3 text-success fw-bold">
+                Website Demonstration
+            </h4>
+
+            <p class="text-muted mb-3">
+                Watch how the system works step by step.
+            </p>
+
+            <video width="100%" controls class="rounded shadow">
+                <source src="../images/demo.mp4" type="video/mp4">
+                Your browser does not support video playback.
+            </video>
+        </div>
+
+
+        <!-- Slide 3 -->
+        <div class="carousel-item">
+            <img src="../images/images.png" width="180" class="mb-4">
+
+            <h4 class="fw-bold text-dark">
+                Need Help?
+            </h4>
+
+            <p class="text-muted">
+                If you have any doubts regarding the software,  
+                you can check complete documentation, demo videos, 
+                and support details here.
+            </p>
+        </div>
+
+    </div>
+
+
+    <!-- Previous Button -->
+    <button class="carousel-control-prev"
+            type="button"
+            data-bs-target="#demoCarousel"
+            data-bs-slide="prev">
+
+        <span class="carousel-control-prev-icon bg-dark rounded-circle p-3"></span>
+    </button>
+
+
+    <!-- Next Button -->
+    <button class="carousel-control-next"
+            type="button"
+            data-bs-target="#demoCarousel"
+            data-bs-slide="next">
+
+        <span class="carousel-control-next-icon bg-dark rounded-circle p-3"></span>
+    </button>
 
 </div>
 
+</div>
 </div>
 
 <!-- RIGHT (LATEST UPDATES) -->
@@ -196,6 +269,6 @@ function updateTime(){
 setInterval(updateTime,1000);
 updateTime();
 </script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -190,7 +190,12 @@ $percent = $row['allocated_seats']>0
 
 <tr>
 <td><?php echo $row['hostel_name']; ?></td>
-<td><?php echo $row['college_name']; ?></td>
+<td>
+<a href="college_students.php?college_id=<?php echo $row['college_id']; ?>" 
+class="text-decoration-none fw-bold text-primary">
+<?php echo $row['college_name']; ?>
+</a>
+</td>
 <td><?php echo $row['allocated_seats']; ?></td>
 <td><?php echo $row['admitted']; ?></td>
 <td><?php echo $row['vacant']; ?></td>

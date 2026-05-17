@@ -1,0 +1,12 @@
+@import url('../superadmin/superadmin.css'); /* reuse same design */
+
+/* optional rector color tweaks */
+
+.sidebar-title{
+    color:#0ea5e9;
+}
+
+.menu-link.active{
+    background:#e0f2fe;
+    color:#0369a1;
+}
